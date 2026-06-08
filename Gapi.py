@@ -2,14 +2,10 @@ import math
 
 import pygame
 
+from Interfaces import IInputProvider, IRenderer
 
-class Gapi:
-    """
-    Pygame-реализация Renderer.
-    Весь pygame-код живёт здесь и только здесь.
-    Camera, InputHandler, TrackRenderer, UIManager — приватные детали этого класса.
-    """
 
+class Gapi(IRenderer, IInputProvider):
     WIDTH, HEIGHT = 960, 540
     FPS = 60
 
@@ -23,12 +19,20 @@ class Gapi:
         self._track_surf: pygame.Surface | None = None
         self._track_offset = (0, 0)
         self._font = pygame.font.SysFont(None, 26)
-        self._player = None
+        self._car_image = self._build_car_image()
 
-    # ── Renderer interface ─────────────────────────────────────────────────
+    def _build_car_image(self) -> pygame.Surface:
+        w, h = 48, 28
+        surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        rect = surf.get_rect()
+        pygame.draw.rect(surf, (255, 214, 0), rect, border_radius=6)
+        pygame.draw.rect(surf, (25, 25, 25), rect, 2, border_radius=6)
+        pygame.draw.rect(
+            surf, pygame.Rect(w * 0.58, h * 0.22, w * 0.2, h * 0.56), (255, 255, 255)
+        )
+        return surf
 
     def setup(self, game) -> None:
-        self._player = game.player
         self._track_surf, self._track_offset = self._build_track()
 
     def poll_events(self) -> str:
@@ -42,7 +46,7 @@ class Gapi:
                     return "reset"
         return "continue"
 
-    def get_actions(self) -> dict:
+    def get_actions(self) -> dict[str, bool]:
         keys = pygame.key.get_pressed()
         return {
             "forward": keys[pygame.K_w] or keys[pygame.K_UP],
@@ -60,14 +64,11 @@ class Gapi:
             self.screen, (32, 32, 44), self.screen.get_rect(), 6, border_radius=18
         )
 
-        # Трасса
         ox, oy = self._track_offset
         self.screen.blit(self._track_surf, (ox - self._camera.x, oy - self._camera.y))
 
-        # Машина
-        game.player.draw(self.screen, self._camera)
+        self._draw_car(game.player)
 
-        # HUD
         text = self._font.render(
             f"x={int(game.player.pos.x)}  "
             f"y={int(game.player.pos.y)}  "
@@ -79,18 +80,22 @@ class Gapi:
 
         pygame.display.flip()
 
+    def _draw_car(self, player) -> None:
+        rotated = pygame.transform.rotate(self._car_image, -player.angle)
+        rect = rotated.get_rect(
+            center=(player.pos.x - self._camera.x, player.pos.y - self._camera.y)
+        )
+        self.screen.blit(rotated, rect)
+
     def tick(self) -> float:
         return self.clock.tick(self.FPS) / 1000
 
-    # ── Private helpers ────────────────────────────────────────────────────
-
-    def _update_camera(self, target: pygame.Vector2) -> None:
+    def _update_camera(self, target) -> None:
         self._camera.x = target.x - self.WIDTH / 2
         self._camera.y = target.y - self.HEIGHT / 2
 
     @staticmethod
     def _build_track() -> tuple[pygame.Surface, tuple]:
-        """Строит поверхность трассы один раз при старте."""
         points = [
             (
                 800 + int(600 * math.cos(math.radians(i))),
@@ -109,12 +114,10 @@ class Gapi:
         surf = pygame.Surface((max_x - min_x, max_y - min_y), pygame.SRCALPHA)
         local = [(p[0] - min_x, p[1] - min_y) for p in points]
 
-        # Обочина
         for p in local:
             pygame.draw.circle(surf, (200, 200, 200), p, (road_w + 40) // 2)
         pygame.draw.lines(surf, (200, 200, 200), True, local, road_w + 40)
 
-        # Дорога
         for p in local:
             pygame.draw.circle(surf, (80, 80, 80), p, road_w // 2)
         pygame.draw.lines(surf, (80, 80, 80), True, local, road_w)

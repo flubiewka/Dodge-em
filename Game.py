@@ -2,8 +2,6 @@ from Car import Car
 
 
 class Game:
-    """Чистая игровая логика. Никакого I/O — только состояние и правила."""
-
     START_POS = (800, 600)
 
     def __init__(self):

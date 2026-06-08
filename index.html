@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Архитектура: Dodge 'em</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 0; background: #121218; color: #e0e0e0; display: flex; justify-content: center; padding: 40px; }
+main { width: 100%; max-width: 1100px; display: flex; flex-direction: column; align-items: center; }
+h1 { color: #ffd600; margin-bottom: 30px; font-weight: normal; }
+.diagram-container { background: #1e1e28; padding: 40px; border-radius: 12px; border: 1px solid #2d2d3d; width: 100%; display: flex; justify-content: center; overflow-x: auto; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+</script>
+</head>
+<body>
+
+<main>
+<h1>Детальная архитектура</h1>
+
+<div class="diagram-container">
+<div class="mermaid">
+graph TD
+    classDef abstract fill:#1e1e28,stroke:#ffd600,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef entry fill:#1e1e28,stroke:#98c379,stroke-width:2px;
+    classDef alternative fill:#2a2a35,stroke:#4caf50,stroke-width:2px,stroke-dasharray: 5 5;
+
+    M[main.py]:::entry
+    
+    E["Engine<br/>- game: Game<br/>- renderer: IRenderer<br/>- input_provider: IInputProvider<br/>+ run(): None"]
+    
+    G["Game<br/>+ START_POS: tuple<br/>- player: Car<br/>+ update(dt, actions): None<br/>+ reset(): None"]
+    
+    C["Car<br/>+ ACCELERATION: float<br/>+ TURN_SPEED: float<br/>+ DRAG: float<br/>+ MAX_SPEED: float<br/>+ SIZE: tuple<br/>- pos: MathVector2<br/>- vel: MathVector2<br/>- angle: float<br/>+ reset(x, y): None<br/>+ update(dt, actions): None"]
+    
+    MV["MathVector2<br/>+ x: float<br/>+ y: float<br/>+ length(): float<br/>+ scale_to_length(length)<br/>+ lerp(other, t)"]
+
+    IR["«Интерфейс»<br/>IRenderer<br/>+ setup(game)*<br/>+ render(game)*<br/>+ tick()*"]:::abstract
+
+    II["«Интерфейс»<br/>IInputProvider<br/>+ poll_events()*<br/>+ get_actions()*"]:::abstract
+    
+    GAPI["Gapi<br/>+ WIDTH: int<br/>+ HEIGHT: int<br/>+ FPS: int<br/>- _camera: Vector2<br/>- _track_surf: Surface<br/>- _car_image: Surface<br/>+ setup(game): None<br/>+ poll_events(): str<br/>+ get_actions(): dict<br/>+ render(game): None<br/>+ tick(): float<br/>- _draw_car(player)<br/>- _update_camera(target)<br/>- _build_track()<br/>- _build_car_image()"]
+
+    GWEB["Gweb (Web/WASM)<br/>+ setup(game): None<br/>+ poll_events(): str<br/>+ get_actions(): dict<br/>+ render(game): None<br/>+ tick(): float<br/>- _browser_api_calls()"]:::alternative
+
+    M --> E
+    M --> G
+    M --> GAPI
+    M -.-> GWEB
+
+    E --> G
+    E -.-> IR
+    E -.-> II
+
+    GAPI -.-> IR
+    GAPI -.-> II
+    GWEB -.-> IR
+    GWEB -.-> II
+
+    G --> C
+    C --> MV
+</div>
+</div>
+</main>
+
+</body>
+</html>

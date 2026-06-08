@@ -1,26 +1,25 @@
 from Game import Game
-from Renderer import Renderer
+from Interfaces import IInputProvider, IRenderer
 
 
 class Engine:
-    """Чистый игровой цикл. Не знает ни про pygame, ни про детали игры."""
-
-    def __init__(self, game: Game, renderer: Renderer):
+    def __init__(self, game: Game, renderer: IRenderer, input_provider: IInputProvider):
         self.game = game
         self.renderer = renderer
+        self.input_provider = input_provider
 
     def run(self) -> None:
         self.renderer.setup(self.game)
         dt = 0.0
 
         while True:
-            match self.renderer.poll_events():
+            match self.input_provider.poll_events():
                 case "quit":
                     break
                 case "reset":
                     self.game.reset()
 
-            actions = self.renderer.get_actions()
+            actions = self.input_provider.get_actions()
             self.game.update(dt, actions)
             self.renderer.render(self.game)
             dt = self.renderer.tick()
