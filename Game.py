@@ -1,23 +1,16 @@
 from Car import Car
-from Engine import Engine
-from renderer_Gapi.Gapi import Gapi
 
 
 class Game:
+    """Чистая игровая логика. Никакого I/O — только состояние и правила."""
+
+    START_POS = (800, 600)
+
     def __init__(self):
-        self.renderer = Gapi()
-        self.engine = Engine(self, self.renderer)
-        self.player = Car(960 / 2, 540 / 2)
-        self.renderer.init_refs(self.player)
+        self.player = Car(*self.START_POS)
 
-    def start(self):
-        self.engine.run()
+    def update(self, dt: float, actions: dict) -> None:
+        self.player.update(dt, actions)
 
-    def update(self, dt):
-        actions = self.renderer.get_input_actions()
-        bounds = self.renderer.get_bounds()
-        self.player.update(dt, actions, bounds)
-
-    def reset(self):
-        start_position = (960 / 2, 540 / 2)
-        self.player.reset(start_position)
+    def reset(self) -> None:
+        self.player.reset(*self.START_POS)

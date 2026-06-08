@@ -1,29 +1,26 @@
+from Game import Game
+from Renderer import Renderer
+
+
 class Engine:
-    def __init__(self, game, renderer):
+    """Чистый игровой цикл. Не знает ни про pygame, ни про детали игры."""
+
+    def __init__(self, game: Game, renderer: Renderer):
         self.game = game
         self.renderer = renderer
-        self.running = True
 
-    def run(self):
-        dt = 0
-        while self.running:
-            match self.get_input():
+    def run(self) -> None:
+        self.renderer.setup(self.game)
+        dt = 0.0
+
+        while True:
+            match self.renderer.poll_events():
                 case "quit":
-                    self.running = False
+                    break
                 case "reset":
                     self.game.reset()
 
-            self.update(dt)
-            self.render()
-
-            dt = self.renderer.frame_end()
-
-    def update(self, dt):
-        self.game.update(dt)
-
-    def render(self):
-        self.renderer.render(self.game)
-
-    def get_input(self):
-        # Получить результат от рендера
-        return self.renderer.poll_events()
+            actions = self.renderer.get_actions()
+            self.game.update(dt, actions)
+            self.renderer.render(self.game)
+            dt = self.renderer.tick()
