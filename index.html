@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Документация архитектуры: Dodge 'em</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #121218;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        header {
+            background: #1e1e28;
+            border-bottom: 1px solid #2d2d3d;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #ffd600;
+            margin: 0;
+            font-size: 24px;
+            font-weight: normal;
+        }
+
+        .main-nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: #2a2a35;
+            border: 1px solid #3d3d52;
+            color: #e0e0e0;
+            padding: 10px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .nav-btn.active {
+            background: #ffd600;
+            color: #121218;
+            border-color: #ffd600;
+            font-weight: bold;
+        }
+
+        .nav-btn:hover:not(.active) {
+            background: #33334a;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* ── Architecture ── */
+        .diagram-container {
+            background: #1e1e28;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #2d2d3d;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        .arch-legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            padding: 16px;
+            background: #1e1e28;
+            border-radius: 8px;
+            border: 1px solid #2d2d3d;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #a0a0b0;
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        /* ── Docs layout ── */
+        .docs-layout {
+            display: flex;
+            gap: 24px;
+            margin-top: 20px;
+            align-items: flex-start;
+        }
+
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            background: #1e1e28;
+            border: 1px solid #2d2d3d;
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            position: sticky;
+            top: 20px;
+        }
+
+        .sidebar-section {
+            font-size: 11px;
+            color: #555570;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 10px 10px 4px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #a0a0b0;
+            text-align: left;
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .tab-btn:hover {
+            background: #2a2a35;
+            color: #e0e0e0;
+        }
+
+        .tab-btn.active {
+            background: #ffd600;
+            color: #121218;
+            font-weight: bold;
+        }
+
+        .content-area {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* ── File doc card ── */
+        .file-card {
+            background: #1e1e28;
+            border: 1px solid #2d2d3d;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .file-title {
+            color: #ffd600;
+            margin-top: 0;
+            border-bottom: 1px solid #2d2d3d;
+            padding-bottom: 14px;
+            font-size: 20px;
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-badge {
+            font-size: 11px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-family: monospace;
+        }
+
+        .badge-interface {
+            background: #1e283a;
+            color: #60a0ff;
+            border: 1px solid #2d4060;
+        }
+
+        .badge-logic {
+            background: #1e281e;
+            color: #4caf50;
+            border: 1px solid #2d4a2d;
+        }
+
+        .badge-render {
+            background: #281e28;
+            color: #c070e0;
+            border: 1px solid #4a2d4a;
+        }
+
+        .badge-entry {
+            background: #28221e;
+            color: #e09040;
+            border: 1px solid #4a3828;
+        }
+
+        .file-desc {
+            color: #a0a0b0;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        /* ── Method block ── */
+        .method-block {
+            background: #121218;
+            border: 1px solid #2d2d3d;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            overflow: hidden;
+        }
+
+        .method-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s;
+        }
+
+        .method-header:hover {
+            background: #1a1a24;
+        }
+
+        .method-sig {
+            font-family: monospace;
+            font-size: 14px;
+            color: #98c379;
+        }
+
+        .method-sig .cls {
+            color: #61afef;
+        }
+
+        .method-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ret-tag {
+            font-family: monospace;
+            font-size: 12px;
+            color: #4caf50;
+            background: #1e281e;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .chevron {
+            color: #555570;
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .method-body {
+            padding: 0 18px 18px;
+            border-top: 1px solid #1e1e28;
+        }
+
+        .method-body.collapsed {
+            display: none;
+        }
+
+        .method-desc {
+            color: #cccccc;
+            font-size: 14px;
+            margin: 14px 0 0;
+        }
+
+        /* ── Code annotation ── */
+        .code-block {
+            background: #0d0d14;
+            border: 1px solid #2d2d3d;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 14px;
+            font-size: 13px;
+        }
+
+        .code-block table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .code-line {
+            display: flex;
+        }
+
+        .line-num {
+            color: #444458;
+            padding: 3px 12px 3px 14px;
+            user-select: none;
+            text-align: right;
+            min-width: 40px;
+            font-family: monospace;
+            border-right: 1px solid #1e1e2a;
+        }
+
+        .line-code {
+            padding: 3px 14px;
+            font-family: monospace;
+            white-space: pre;
+            flex: 1;
+        }
+
+        .line-comment {
+            padding: 3px 14px;
+            color: #6a7a9a;
+            font-size: 12px;
+            flex: 0 0 320px;
+            border-left: 1px solid #1e1e2a;
+            white-space: normal;
+        }
+
+        .line-code .kw {
+            color: #c678dd;
+        }
+
+        .line-code .fn {
+            color: #61afef;
+        }
+
+        .line-code .st {
+            color: #98c379;
+        }
+
+        .line-code .cm {
+            color: #5c6370;
+            font-style: italic;
+        }
+
+        .line-code .nm {
+            color: #e5c07b;
+        }
+
+        .line-code .op {
+            color: #56b6c2;
+        }
+
+        .highlight-row {
+            background: #1a1a26;
+        }
+
+        /* ── Params table ── */
+        .params-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
+            font-size: 13px;
+        }
+
+        .params-table th {
+            text-align: left;
+            color: #666680;
+            font-weight: normal;
+            padding: 6px 12px;
+            border-bottom: 1px solid #2d2d3d;
+        }
+
+        .params-table td {
+            padding: 7px 12px;
+            border-bottom: 1px solid #1e1e2a;
+            vertical-align: top;
+        }
+
+        .param-name {
+            font-family: monospace;
+            color: #e5c07b;
+        }
+
+        .param-type {
+            font-family: monospace;
+            color: #56b6c2;
+        }
+
+        .param-desc {
+            color: #b0b0c0;
+        }
+
+        /* ── Principles section ── */
+        .principles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .principle-card {
+            background: #121218;
+            border: 1px solid #2d2d3d;
+            border-radius: 8px;
+            padding: 18px;
+        }
+
+        .principle-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #ffd600;
+            margin-bottom: 8px;
+        }
+
+        .principle-body {
+            font-size: 13px;
+            color: #a0a0b0;
+        }
+
+        .principle-example {
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #61afef;
+            background: #0d0d14;
+            padding: 6px 10px;
+            border-radius: 4px;
+        }
+
+        /* ── Data flow ── */
+        .flow-row {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+
+        .flow-box {
+            background: #1e1e28;
+            border: 1px solid #3d3d52;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-family: monospace;
+            color: #e0e0e0;
+            white-space: nowrap;
+        }
+
+        .flow-arrow {
+            color: #555570;
+            padding: 0 8px;
+            font-size: 16px;
+        }
+
+        .flow-label {
+            font-size: 11px;
+            color: #6a7a9a;
+            padding: 0 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Архитектура &amp; Документация: Dodge 'em</h1>
+        <nav class="main-nav">
+            <button class="nav-btn active" onclick="switchPage('architecture', this)">Обзор архитектуры</button>
+            <button class="nav-btn" onclick="switchPage('documentation', this)">Спецификация классов</button>
+            <button class="nav-btn" onclick="switchPage('annotated', this)">Разбор кода по строкам</button>
+            <button class="nav-btn" onclick="switchPage('dataflow', this)">Поток данных</button>
+            <button class="nav-btn" onclick="switchPage('principles', this)">ООП-принципы</button>
+        </nav>
+    </header>
+
+    <div class="container">
+
+        <!-- ═══════════════════════════════════════════════════════════
+     СТРАНИЦА 1 — АРХИТЕКТУРА
+═══════════════════════════════════════════════════════════ -->
+        <div id="architecture" class="page active">
+            <div class="diagram-container">
+                <div class="mermaid">
+classDiagram
+direction TB
+
+class IInputProvider {
+    <<interface>>
+    +poll_events() str
+    +get_actions() tuple
+}
+
+class IRenderer {
+    <<interface>>
+    +setup(game) None
+    +render(game) None
+    +tick() float
+}
+
+class Engine {
+    -Game game
+    -IRenderer renderer
+    -IInputProvider input_provider
+    +run() None
+}
+
+class Game {
+    +int FINISH_Y
+    +int FINISH_X0
+    +int FINISH_X1
+    -PlayerState p1
+    -PlayerState p2
+    -Callable _is_wall
+    +set_wall_checker(fn) None
+    +update(dt, a1, a2) None
+    +reset() None
+    -_check_wall(car) None
+    -_is_finish(x, y) bool
+    -_laps() None
+}
+
+class PlayerState {
+    -tuple _start
+    +Car car
+    +int laps
+    -bool _away
+    +check_lap(is_finish) None
+    +reset() None
+    +__copy__()
+    +__deepcopy__()
+}
+
+class Car {
+    +float ACCELERATION
+    +float TURN_SPEED
+    +float DRAG
+    +float MAX_SPEED
+    -MathVector2 pos
+    -MathVector2 vel
+    -float angle
+    +reset(x, y) None
+    +update(dt, actions) None
+    +__copy__()
+    +__deepcopy__()
+}
+
+class MathVector2 {
+    +float x
+    +float y
+    +length() float
+    +scale_to_length(l) None
+    +lerp(other, t) MathVector2
+}
+
+class PyGameRenderer {
+    +int WIDTH
+    +int HEIGHT
+    +int FPS
+    -Surface screen
+    -Clock clock
+    -Vector2 _camera
+    -Surface _track_surf
+    -list _dashes
+    -list _car_imgs
+    +setup(game) None
+    +render(game) None
+    +tick() float
+    -_make_car(color) Surface
+    -_build_track() tuple
+    +__copy__()
+    +__deepcopy__()
+}
+
+class PyGameInput {
+    +poll_events() str
+    +get_actions() tuple
+    +__copy__()
+    +__deepcopy__()
+}
+
+class Gapi {
+    +PyGameRenderer renderer
+    +PyGameInput input
+}
+
+PyGameRenderer ..|> IRenderer : реализует
+PyGameInput ..|> IInputProvider : реализует
+Engine --> IRenderer : использует
+Engine --> IInputProvider : использует
+Engine --> Game : обновляет
+Game *-- PlayerState : владеет
+PlayerState *-- Car : владеет
+Car *-- MathVector2 : владеет
+Gapi *-- PyGameRenderer : содержит
+Gapi *-- PyGameInput : содержит
+                </div>
+            </div>
+            <div class="arch-legend">
+                <span class="legend-item"><span class="legend-dot"
+                        style="background:#1e283a;border:1px solid #2d4060"></span>Интерфейс (ABC)</span>
+                <span class="legend-item"><span class="legend-dot"
+                        style="background:#1e281e;border:1px solid #2d4a2d"></span>Игровая логика</span>
+                <span class="legend-item"><span class="legend-dot"
+                        style="background:#281e28;border:1px solid #4a2d4a"></span>Графика / ввод (pygame)</span>
+                <span class="legend-item"><span class="legend-dot"
+                        style="background:#28221e;border:1px solid #4a3828"></span>Фасад / точка входа</span>
+                <span class="legend-item"><span style="color:#555570;font-size:18px">- - ▷</span>&nbsp;реализует
+                    интерфейс</span>
+                <span class="legend-item"><span style="color:#555570;font-size:18px">——◆</span>&nbsp;композиция
+                    (владение)</span>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+     СТРАНИЦА 2 — СПЕЦИФИКАЦИЯ КЛАССОВ
+═══════════════════════════════════════════════════════════ -->
+        <div id="documentation" class="page">
+            <div class="docs-layout">
+                <aside class="sidebar">
+                    <div class="sidebar-section">Интерфейсы</div>
+                    <button class="tab-btn active" onclick="switchTab('t_interfaces', this)">Interfaces.py</button>
+                    <div class="sidebar-section">Логика</div>
+                    <button class="tab-btn" onclick="switchTab('t_mathvec', this)">MathVector2</button>
+                    <button class="tab-btn" onclick="switchTab('t_car', this)">Car</button>
+                    <button class="tab-btn" onclick="switchTab('t_playerstate', this)">PlayerState</button>
+                    <button class="tab-btn" onclick="switchTab('t_game', this)">Game</button>
+                    <button class="tab-btn" onclick="switchTab('t_engine', this)">Engine</button>
+                    <div class="sidebar-section">Рендер / ввод</div>
+                    <button class="tab-btn" onclick="switchTab('t_renderer', this)">PyGameRenderer</button>
+                    <button class="tab-btn" onclick="switchTab('t_input', this)">PyGameInput</button>
+                    <button class="tab-btn" onclick="switchTab('t_gapi', this)">Gapi (фасад)</button>
+                    <div class="sidebar-section">Точка входа</div>
+                    <button class="tab-btn" onclick="switchTab('t_main', this)">main.py</button>
+                </aside>
+                <main class="content-area">
+
+                    <!-- Interfaces -->
+                    <div id="t_interfaces" class="tab-content">
+                        <div class="file-card">
+                            <h2 class="file-title">Interfaces.py <span class="file-badge badge-interface">ABC</span>
+                            </h2>
+                            <p class="file-desc">Определяет два абстрактных базовых класса — <code>IInputProvider</code>
+                                и <code>IRenderer</code>. Они не содержат логики, только контракты (сигнатуры). Любой
+                                конкретный класс, реализующий их, обязан предоставить все методы. Это делает
+                                <code>Engine</code> полностью независимым от pygame или любого другого фреймворка.
+                            </p>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig"><span
+                                            class="cls">IInputProvider</span>.poll_events(self)</span>
+                                    <div class="method-right"><span class="ret-tag">→ str</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Опрашивает очередь событий операционной системы за текущий
+                                        кадр. Должен вернуть одну из трёх строк-директив: <code>"quit"</code> —
+                                        завершить приложение, <code>"reset"</code> — перезапустить игру,
+                                        <code>"continue"</code> — ничего не делать. Вызывается один раз в начале каждой
+                                        итерации игрового цикла.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig"><span
+                                            class="cls">IInputProvider</span>.get_actions(self)</span>
+                                    <div class="method-right"><span class="ret-tag">→ tuple[dict, dict]</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Считывает мгновенное состояние устройств ввода и возвращает
+                                        пару словарей — по одному на каждого игрока. Каждый словарь содержит ключи
+                                        <code>"forward"</code>, <code>"brake"</code>, <code>"left"</code>,
+                                        <code>"right"</code>, <code>"nitro"</code> со значениями <code>bool</code>.
+                                        Игрок 1 — WASD+Shift, Игрок 2 — стрелки+Enter.
+                                    </p>
+                                    <table class="params-table">
+                                        <tr>
+                                            <th>Ключ словаря</th>
+                                            <th>Тип</th>
+                                            <th>Значение</th>
+                                        </tr>
+                                        <tr>
+                                            <td class="param-name">forward</td>
+                                            <td class="param-type">bool</td>
+                                            <td class="param-desc">Нажата кнопка газа — ускорение вперёд</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="param-name">brake</td>
+                                            <td class="param-type">bool</td>
+                                            <td class="param-desc">Нажата кнопка тормоза — отрицательная тяга</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="param-name">left</td>
+                                            <td class="param-type">bool</td>
+                                            <td class="param-desc">Руль влево — отрицательный поворот</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="param-name">right</td>
+                                            <td class="param-type">bool</td>
+                                            <td class="param-desc">Руль вправо — положительный поворот</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="param-name">nitro</td>
+                                            <td class="param-type">bool</td>
+                                            <td class="param-desc">Нитро — дополнительная тяга ×2.5, удвоение max_speed
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig"><span class="cls">IRenderer</span>.setup(self, game)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Вызывается один раз перед стартом игрового цикла. Конкретная
+                                        реализация использует его для дорогостоящей инициализации: создание окна,
+                                        генерация поверхности трассы, передача коллбэка проверки стен в
+                                        <code>Game</code>. Принимает объект <code>Game</code> для настройки
+                                        взаимодействия.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig"><span class="cls">IRenderer</span>.render(self,
+                                        game)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Отрисовывает текущее состояние игры. Вызывается один раз за
+                                        кадр после <code>game.update()</code>. Реализация читает позиции, скорости и
+                                        счётчики кругов из объектов игры, но никогда не изменяет их — это строгое
+                                        разделение логики и представления.</p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig"><span class="cls">IRenderer</span>.tick(self)</span>
+                                    <div class="method-right"><span class="ret-tag">→ float</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Ограничивает FPS и возвращает delta time — время в секундах,
+                                        прошедшее с предыдущего кадра. Это значение передаётся в
+                                        <code>Car.update(dt)</code> для фреймрейт-независимой физики. При 60 FPS dt ≈
+                                        0.0167 секунды.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MathVector2 -->
+                    <div id="t_mathvec" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">MathVector2 <span class="file-badge badge-logic">Car.py</span></h2>
+                            <p class="file-desc">Двумерный математический вектор с компонентами <code>x</code> и
+                                <code>y</code> типа <code>float</code>. Используется для хранения позиции и скорости
+                                машины. Намеренно не использует <code>pygame.Vector2</code>, чтобы модуль
+                                <code>Car</code> не зависел от pygame.
+                            </p>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">length(self)</span>
+                                    <div class="method-right"><span class="ret-tag">→ float</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Возвращает евклидову длину вектора по формуле
+                                        <code>√(x²+y²)</code>. Реализовано через <code>math.hypot(x, y)</code> — это
+                                        точнее и быстрее, чем <code>sqrt(x*x + y*y)</code>, так как hypot защищён от
+                                        переполнения при очень больших значениях. Используется в <code>Car</code> для
+                                        измерения скорости.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">scale_to_length(self, target_length)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Нормализует вектор (делает длину = 1) и умножает на
+                                        <code>target_length</code>. Вызывается в <code>Car.update()</code> для
+                                        ограничения скорости: если <code>vel.length() > max_speed</code>, вектор
+                                        скорости "обрезается" до максимума без изменения направления движения.
+                                        Пропускает деление на ноль через проверку <code>if l > 0</code>.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">lerp(self, other, t)</span>
+                                    <div class="method-right"><span class="ret-tag">→ MathVector2</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Линейная интерполяция между текущим вектором и
+                                        <code>other</code> с коэффициентом <code>t ∈ [0.0, 1.0]</code>. Формула:
+                                        <code>self + (other - self) * t</code>. Применяется для имитации сопротивления
+                                        воздуха: каждый кадр вектор скорости интерполируется к нулю с коэффициентом
+                                        <code>DRAG * dt * 0.5</code>.
+                                    </p>
+                                    <table class="params-table">
+                                        <tr>
+                                            <th>Параметр</th>
+                                            <th>Тип</th>
+                                            <th>Описание</th>
+                                        </tr>
+                                        <tr>
+                                            <td class="param-name">other</td>
+                                            <td class="param-type">MathVector2</td>
+                                            <td class="param-desc">Целевой вектор. При вызове из Car всегда передаётся
+                                                MathVector2(0,0) — ноль</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="param-name">t</td>
+                                            <td class="param-type">float</td>
+                                            <td class="param-desc">Коэффициент: 0.0 = без изменений, 1.0 = полный
+                                                переход к other</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">__add__, __sub__, __mul__, __rmul__</span>
+                                    <div class="method-right"><span class="ret-tag">→ MathVector2</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Перегрузка операторов для читаемой математики:
+                                        <code>pos += vel * dt</code> вместо
+                                        <code>pos.x += vel.x * dt; pos.y += vel.y * dt</code>. <code>__rmul__</code>
+                                        нужен для случая когда скаляр стоит слева: <code>2.5 * vector</code> — Python
+                                        сначала пробует <code>float.__mul__(vector)</code>, это не работает, и тогда
+                                        вызывает <code>vector.__rmul__(2.5)</code>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Car -->
+                    <div id="t_car" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">Car <span class="file-badge badge-logic">Car.py</span></h2>
+                            <p class="file-desc">Физическая модель автомобиля. Хранит позицию, вектор скорости и угол
+                                направления. Содержит только чистую математику — никакого pygame, никакого рендера.
+                                Константы класса (<code>ACCELERATION</code>, <code>DRAG</code> и др.) намеренно вынесены
+                                на уровень класса, а не экземпляра — их удобно менять для настройки баланса.</p>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">update(self, dt, actions)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Главный физический тик. За каждый кадр выполняет пять шагов
+                                        по порядку:</p>
+                                    <p class="method-desc">
+                                        <b>1. Поворот</b> — вычисляет знак поворота по клавишам left/right. При скорости
+                                        менее 10 px/s поворот ослаблен пропорционально скорости — нельзя крутить руль на
+                                        месте.<br>
+                                        <b>2. Тяга</b> — складывает thrust из газа (+1.0), тормоза (−0.5) и нитро
+                                        (+2.5). При нитро удваивается max_speed.<br>
+                                        <b>3. Ускорение</b> — добавляет к вектору скорости
+                                        <code>forward * ACCELERATION * thrust * dt</code>, где <code>forward</code> —
+                                        единичный вектор текущего направления машины.<br>
+                                        <b>4. Ограничение</b> — если <code>vel.length() > max_speed</code>, скорость
+                                        обрезается до максимума через <code>scale_to_length</code>.<br>
+                                        <b>5. Торможение</b> — применяет lerp к нулю с коэффициентом
+                                        <code>DRAG * dt * 0.5</code> — имитация аэродинамического сопротивления.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">__copy__ / __deepcopy__</span>
+                                    <div class="method-right"><span class="ret-tag">→ raises TypeError</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Блокировка копирования — питонический аналог
+                                        <code>= delete</code> из C++. Если где-то в коде случайно напишут
+                                        <code>copy.copy(car)</code> или <code>copy.deepcopy(car)</code>, вместо создания
+                                        скрытого дубля с независимым состоянием будет немедленно брошено
+                                        <code>TypeError</code>. Это предотвращает труднообнаруживаемые баги, когда
+                                        изменения одной машины не отражаются на другой.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PlayerState -->
+                    <div id="t_playerstate" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">PlayerState <span class="file-badge badge-logic">Game.py</span></h2>
+                            <p class="file-desc">Агрегирует всё состояние одного игрока: его машину, счётчик кругов и
+                                флаг отдалённости от финишной линии. Это решает проблему предыдущей версии, где
+                                <code>Game</code> хранил отдельные поля <code>laps1</code>, <code>laps2</code>,
+                                <code>_p1_away</code>, <code>_p2_away</code> и обращался к ним через
+                                <code>getattr/setattr</code> со строковыми именами.
+                            </p>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">check_lap(self, is_finish)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Принимает функцию-предикат
+                                        <code>is_finish(x, y) → bool</code> и проверяет, находится ли машина в зоне
+                                        финиша. Засчитывает круг только если: машина <i>сейчас</i> в зоне финиша
+                                        (<code>near=True</code>) И флаг <code>_away=True</code> (т.е. она до этого
+                                        отъехала) И скорость больше 10 px/s (нельзя стоять на финише и получать круги).
+                                        После проверки обновляет флаг <code>_away = not near</code>.
+                                    </p>
+                                    <table class="params-table">
+                                        <tr>
+                                            <th>Параметр</th>
+                                            <th>Тип</th>
+                                            <th>Описание</th>
+                                        </tr>
+                                        <tr>
+                                            <td class="param-name">is_finish</td>
+                                            <td class="param-type">Callable[[float,float], bool]</td>
+                                            <td class="param-desc">Коллбэк из Game. Возвращает True если координата
+                                                (x,y) попадает в зону финишной линии</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Game -->
+                    <div id="t_game" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">Game <span class="file-badge badge-logic">Game.py</span></h2>
+                            <p class="file-desc">Управляет игровым миром. Содержит двух игроков
+                                (<code>PlayerState</code>), координаты финишной линии и коллбэк проверки стен. Ключевое
+                                улучшение архитектуры: <code>Game</code> не хранит <code>pygame.Surface</code> — вместо
+                                этого <code>PyGameRenderer.setup()</code> передаёт в него замыкание
+                                <code>is_wall(x, y) → bool</code>. Теперь слой рендера не протекает в игровую логику.
+                            </p>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">set_wall_checker(self, fn)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Принимает функцию <code>fn(x: float, y: float) → bool</code>
+                                        и сохраняет её как <code>self._is_wall</code>. По умолчанию
+                                        <code>_is_wall = lambda x, y: False</code> — без трассы стен нет. После вызова
+                                        <code>setup()</code> рендерер подменяет эту лямбду реальной проверкой пикселя в
+                                        поверхности трассы. <code>Game</code> при этом понятия не имеет, что внутри —
+                                        это может быть bitmap, полигоны или что угодно.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">_is_finish(self, x, y)</span>
+                                    <div class="method-right"><span class="ret-tag">→ bool</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Проверяет, находится ли точка <code>(x, y)</code> в
+                                        прямоугольной зоне финишной линии. Зона задана константами
+                                        <code>FINISH_Y=600</code> (горизонтальная линия), <code>FINISH_X0=1250</code>,
+                                        <code>FINISH_X1=1550</code>. Допуск по Y: ±30 пикселей. Этот метод передаётся
+                                        как коллбэк в <code>PlayerState.check_lap()</code>.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">update(self, dt, a1, a2)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Главный тик игрового мира. Для каждого игрока
+                                        последовательно: обновляет физику машины (<code>car.update</code>), проверяет
+                                        коллизию со стеной (<code>_check_wall</code>), проверяет пересечение финиша
+                                        (<code>ps.check_lap</code>). Порядок важен: сначала физика, потом коррекция
+                                        позиции.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Engine -->
+                    <div id="t_engine" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">Engine <span class="file-badge badge-logic">Engine.py</span></h2>
+                            <p class="file-desc">Оркестратор главного цикла. Единственный класс, который знает о
+                                существовании всех трёх компонентов (<code>Game</code>, <code>IRenderer</code>,
+                                <code>IInputProvider</code>), но взаимодействует с ними только через интерфейсы. Сам не
+                                содержит ни игровой логики, ни рендера — только последовательность вызовов.
+                            </p>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">__init__(self, game, renderer, input_provider)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Dependency Injection вручную. Принимает зависимости как
+                                        параметры конструктора — никакого <code>import pygame</code> внутри Engine. Типы
+                                        параметров — <code>IRenderer</code> и <code>IInputProvider</code>. Это значит
+                                        Engine можно использовать с любым рендерером (терминал, веб, тесты) без
+                                        изменения его кода.</p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">run(self)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Запускает бесконечный цикл <code>while True</code>. Каждая
+                                        итерация состоит из четырёх шагов: <b>1)</b> <code>poll_events()</code> —
+                                        события ОС, выход при "quit", сброс при "reset". <b>2)</b>
+                                        <code>get_actions()</code> — текущее состояние клавиш. <b>3)</b>
+                                        <code>game.update(dt, a1, a2)</code> — физика и логика. <b>4)</b>
+                                        <code>render(game)</code> + <code>tick()</code> — рисуем кадр, получаем dt для
+                                        следующего. Цикл завершается только по команде "quit".
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PyGameRenderer -->
+                    <div id="t_renderer" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">PyGameRenderer <span class="file-badge badge-render">Gapi.py</span>
+                            </h2>
+                            <p class="file-desc">Реализует <code>IRenderer</code>. Отвечает исключительно за
+                                визуализацию: создание окна, генерацию геометрии трассы, отрисовку машин, разметки
+                                дороги, финишной линии и HUD. Не содержит логики обработки ввода — это отдельный класс.
+                            </p>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">setup(self, game)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Генерирует поверхность трассы через
+                                        <code>_build_track()</code>, затем создаёт замыкание <code>is_wall(x, y)</code>,
+                                        которое захватывает <code>surf</code> и <code>offset</code> из локальной области
+                                        видимости. Это замыкание передаётся в <code>game.set_wall_checker()</code>.
+                                        Таким образом <code>Game</code> получает способность проверять стены, не имея
+                                        прямой ссылки на <code>pygame.Surface</code>.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">render(self, game)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Отрисовывает кадр в порядке слоёв (back-to-front): <b>1)</b>
+                                        Фон. <b>2)</b> Трасса (blit поверхности со смещением камеры). <b>3)</b>
+                                        Пунктирная осевая разметка. <b>4)</b> Финишная линия (шахматный паттерн из 10
+                                        сегментов). <b>5)</b> Машины (спрайт с вращением по углу). <b>6)</b> HUD — два
+                                        полупрозрачных панели с кругами. Камера центрируется на середине между двумя
+                                        машинами.</p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">_build_track(self)</span>
+                                    <div class="method-right"><span class="ret-tag">→ tuple[Surface, tuple]</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Процедурно генерирует трассу. Вычисляет 72 точки эллипса (шаг
+                                        5°, rx=600, ry=300). Рисует трассу в два слоя: сначала широкий серый бордюр
+                                        (road_w + 40), затем более узкий тёмный асфальт (road_w). Также заполняет
+                                        <code>self._dashes</code> — список пар точек для пунктирной осевой: каждая
+                                        чётная пара точек = штрих, нечётная = пропуск. Возвращает поверхность и смещение
+                                        (min_x, min_y) относительно мировых координат.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PyGameInput -->
+                    <div id="t_input" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">PyGameInput <span class="file-badge badge-render">Gapi.py</span></h2>
+                            <p class="file-desc">Реализует <code>IInputProvider</code>. Единственная ответственность —
+                                считывать ввод с клавиатуры через pygame. Отделён от рендерера в соответствии с
+                                принципом единственной ответственности (SRP).</p>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">poll_events(self)</span>
+                                    <div class="method-right"><span class="ret-tag">→ str</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Перебирает очередь <code>pygame.event.get()</code>. Событие
+                                        <code>QUIT</code> (нажатие крестика окна) и клавиша <code>Esc</code> возвращают
+                                        <code>"quit"</code>. Клавиша <code>R</code> возвращает <code>"reset"</code>.
+                                        Если событий нет или они не распознаны — возвращает <code>"continue"</code>.
+                                        Важно: очередь опрашивается ровно один раз за кадр, чтобы не пропускать события.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">get_actions(self)</span>
+                                    <div class="method-right"><span class="ret-tag">→ tuple[dict, dict]</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Использует <code>pygame.key.get_pressed()</code> — это
+                                        мгновенный снимок всех зажатых клавиш, в отличие от <code>poll_events</code>
+                                        который ловит нажатия/отпускания. Маппинг: Игрок 1 — W/A/S/D + LShift, Игрок 2 —
+                                        стрелки + Enter (обычный и цифровой).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gapi -->
+                    <div id="t_gapi" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">Gapi <span class="file-badge badge-entry">Gapi.py</span></h2>
+                            <p class="file-desc">Фасад (паттерн Facade). Не реализует интерфейсов сам — просто создаёт и
+                                хранит <code>PyGameRenderer</code> и <code>PyGameInput</code> как публичные атрибуты
+                                <code>.renderer</code> и <code>.input</code>. Упрощает точку входа: <code>main.py</code>
+                                создаёт один объект и берёт нужные части.
+                            </p>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">__init__(self)</span>
+                                    <div class="method-right"><span class="ret-tag">→ None</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc">Создаёт <code>self.renderer = PyGameRenderer()</code> и
+                                        <code>self.input = PyGameInput()</code>. <code>main.py</code> затем передаёт их
+                                        раздельно в <code>Engine(game, api.renderer, api.input)</code>. Engine принимает
+                                        типы <code>IRenderer</code> и <code>IInputProvider</code> — полиморфизм
+                                        обеспечивает, что в будущем можно подменить любой из них независимо.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- main -->
+                    <div id="t_main" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">main.py <span class="file-badge badge-entry">Точка входа</span></h2>
+                            <p class="file-desc">Точка входа в 4 строки. Выполняет компоновку объектов (composition
+                                root): создаёт конкретные реализации, связывает их через <code>Engine</code> и запускает
+                                цикл. Блок <code>if __name__ == "__main__"</code> гарантирует, что код не выполнится при
+                                импорте файла.</p>
+
+                            <div class="method-block">
+                                <div class="method-header" onclick="toggleMethod(this)">
+                                    <span class="method-sig">Блок if __name__ == "__main__"</span>
+                                    <div class="method-right"><span class="ret-tag">→ выполнение</span><span
+                                            class="chevron">▼</span></div>
+                                </div>
+                                <div class="method-body">
+                                    <p class="method-desc"><code>api = Gapi()</code> — инициализирует pygame и создаёт
+                                        окно. <code>game = Game()</code> — создаёт игровой мир с двумя игроками.
+                                        <code>Engine(game, api.renderer, api.input).run()</code> — связывает логику с
+                                        рендером и вводом, запускает бесконечный цикл. Все зависимости инжектируются
+                                        здесь — ни один класс не создаёт зависимости самостоятельно.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </main>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+     СТРАНИЦА 3 — РАЗБОР КОДА ПО СТРОКАМ
+═══════════════════════════════════════════════════════════ -->
+        <div id="annotated" class="page">
+            <div class="docs-layout">
+                <aside class="sidebar">
+                    <div class="sidebar-section">Файлы</div>
+                    <button class="tab-btn active" onclick="switchTab('a_car', this)">Car.py</button>
+                    <button class="tab-btn" onclick="switchTab('a_game', this)">Game.py</button>
+                    <button class="tab-btn" onclick="switchTab('a_engine', this)">Engine.py</button>
+                    <button class="tab-btn" onclick="switchTab('a_gapi', this)">Gapi.py</button>
+                    <button class="tab-btn" onclick="switchTab('a_main', this)">main.py</button>
+                </aside>
+                <main class="content-area">
+
+                    <div id="a_car" class="tab-content">
+                        <div class="file-card">
+                            <h2 class="file-title">Car.py — построчно</h2>
+                            <div class="code-block">
+                                <div class="code-line"><span class="line-num">1</span><span class="line-code"><span
+                                            class="kw">import</span> math</span><span class="line-comment">Нужен для
+                                        cos(), sin(), radians(), hypot()</span></div>
+                                <div class="code-line"><span class="line-num">2</span><span class="line-code"><span
+                                            class="kw">import</span> copy</span><span class="line-comment">Нужен только
+                                        для аннотации — __copy__/__deepcopy__ перехватывают вызовы copy.copy()</span>
+                                </div>
+                                <div class="code-line highlight-row"><span class="line-num">5</span><span
+                                        class="line-code"><span class="kw">class</span> <span
+                                            class="nm">MathVector2</span>:</span><span class="line-comment">Собственный
+                                        вектор без зависимости от pygame — Car.py можно использовать без pygame</span>
+                                </div>
+                                <div class="code-line"><span class="line-num">6</span><span class="line-code"> <span
+                                            class="kw">def</span> <span class="fn">__init__</span>(self, x=0.0,
+                                        y=0.0):</span><span class="line-comment">Значения по умолчанию 0.0 — удобно для
+                                        создания нулевого вектора: MathVector2()</span></div>
+                                <div class="code-line"><span class="line-num">11</span><span class="line-code"> <span
+                                            class="kw">return</span> math.<span class="fn">hypot</span>(self.x,
+                                        self.y)</span><span class="line-comment">hypot точнее sqrt(x²+y²) при
+                                        экстремальных значениях и не требует x*x</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">14</span><span
+                                        class="line-code"> l = self.<span class="fn">length</span>()</span><span
+                                        class="line-comment">Запоминаем длину, чтобы не вычислять её дважды</span></div>
+                                <div class="code-line"><span class="line-num">15</span><span class="line-code"> <span
+                                            class="kw">if</span> l > 0:</span><span class="line-comment">Защита от
+                                        деления на ноль: нулевой вектор не нормализуем</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">20</span><span
+                                        class="line-code"> self.x + (other.x - self.x) * t</span><span
+                                        class="line-comment">Формула LERP: A + (B-A)*t. При t=0 → A, при t=1 → B</span>
+                                </div>
+                                <div class="code-line"><span class="line-num">30</span><span class="line-code"> <span
+                                            class="kw">def</span> <span class="fn">__rmul__</span>(self, s):
+                                        ...</span><span class="line-comment">Нужен для случая «скаляр * вектор» — Python
+                                        ищет __rmul__ у вектора когда float не умеет умножаться на него</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">35</span><span
+                                        class="line-code"><span class="kw">class</span> <span
+                                            class="nm">Car</span>:</span><span class="line-comment">Чистая логика —
+                                        никакого pygame, никакого цвета (цвет = визуальная деталь, не физика)</span>
+                                </div>
+                                <div class="code-line"><span class="line-num">36</span><span class="line-code">
+                                        ACCELERATION = 900.0</span><span class="line-comment">Константа класса, а не
+                                        экземпляра — одна на всех, легко менять для баланса</span></div>
+                                <div class="code-line"><span class="line-num">37</span><span class="line-code">
+                                        TURN_SPEED = 180.0</span><span class="line-comment">Градусов в секунду при
+                                        полном руле и скорости ≥10</span></div>
+                                <div class="code-line"><span class="line-num">38</span><span class="line-code"> DRAG =
+                                        4.0</span><span class="line-comment">Коэффициент сопротивления воздуха: чем
+                                        больше — тем быстрее тормозит без нажатий</span></div>
+                                <div class="code-line"><span class="line-num">46</span><span class="line-code">
+                                        self.angle = -90.0</span><span class="line-comment">−90° = вверх. В pygame Y
+                                        растёт вниз, поэтому вверх = отрицательный угол</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">49</span><span
+                                        class="line-code"> <span class="kw">def</span> <span
+                                            class="fn">__copy__</span>(self): <span class="kw">raise</span> <span
+                                            class="nm">TypeError</span>(...)</span><span class="line-comment">Аналог «=
+                                        delete» из C++. Запрещает copy.copy(car) — предотвращает скрытые баги с
+                                        дубликатами</span></div>
+                                <div class="code-line"><span class="line-num">50</span><span class="line-code"> <span
+                                            class="kw">def</span> <span class="fn">__deepcopy__</span>(self, _): <span
+                                            class="kw">raise</span> ...</span><span class="line-comment">Блокирует
+                                        copy.deepcopy() — рекурсивное копирование всего дерева объектов</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">56</span><span
+                                        class="line-code"> rad = math.<span
+                                            class="fn">radians</span>(self.angle)</span><span class="line-comment">Угол
+                                        в градусах → радианы для тригонометрии</span></div>
+                                <div class="code-line"><span class="line-num">57</span><span class="line-code"> forward
+                                        = MathVector2(cos(rad), sin(rad))</span><span class="line-comment">Единичный
+                                        вектор направления машины — «куда смотрит нос»</span></div>
+                                <div class="code-line"><span class="line-num">61</span><span class="line-code"> turn -=
+                                        1 <span class="kw">if</span> speed >= 10 <span class="kw">else</span>
+                                        speed/10</span><span class="line-comment">На малой скорости поворот ослаблен —
+                                        реализм, нельзя крутить руль стоя</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">67</span><span
+                                        class="line-code"> <span class="kw">if</span> actions[<span
+                                            class="st">"nitro"</span>]: thrust += 2.5; max_speed *= 2</span><span
+                                        class="line-comment">Нитро даёт тягу 2.5x и удваивает предел скорости — оба
+                                        эффекта одновременно</span></div>
+                                <div class="code-line"><span class="line-num">70</span><span class="line-code"> self.vel
+                                        += forward * (ACCELERATION * thrust * dt)</span><span
+                                        class="line-comment">Добавляем ускорение: направление × сила × время. Формула
+                                        Ньютона: v += a*t</span></div>
+                                <div class="code-line"><span class="line-num">72</span><span class="line-code">
+                                        self.vel.<span class="fn">scale_to_length</span>(max_speed)</span><span
+                                        class="line-comment">«Обрезаем» скорость — направление сохраняется, только
+                                        модуль уменьшается</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">73</span><span
+                                        class="line-code"> self.vel = self.vel.<span
+                                            class="fn">lerp</span>(MathVector2(), min(DRAG*dt, 1.0)*0.5)</span><span
+                                        class="line-comment">Торможение: интерполяция к нулю. min(..., 1.0) не даёт
+                                        перелететь через ноль при больших dt</span></div>
+                                <div class="code-line"><span class="line-num">75</span><span class="line-code"> self.pos
+                                        += self.vel * dt</span><span class="line-comment">Интеграция позиции: pos = pos
+                                        + vel * dt (метод Эйлера)</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="a_game" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">Game.py — построчно</h2>
+                            <div class="code-block">
+                                <div class="code-line highlight-row"><span class="line-num">1</span><span
+                                        class="line-code"><span class="kw">from</span> Car <span
+                                            class="kw">import</span> Car</span><span class="line-comment">Единственная
+                                        зависимость — чистая логика. Никакого pygame в Game</span></div>
+                                <div class="code-line"><span class="line-num">2</span><span class="line-code"><span
+                                            class="kw">from</span> typing <span class="kw">import</span>
+                                        Callable</span><span class="line-comment">Для аннотации типа коллбэка:
+                                        Callable[[float, float], bool]</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">5</span><span
+                                        class="line-code"><span class="kw">class</span> <span
+                                            class="nm">PlayerState</span>:</span><span class="line-comment">Раньше
+                                        laps1/laps2/_p1_away/_p2_away жили в Game разрозненно — теперь сгруппированы в
+                                        объект</span></div>
+                                <div class="code-line"><span class="line-num">7</span><span class="line-code">
+                                        self._start = (x, y)</span><span class="line-comment">Запоминаем стартовую
+                                        позицию для reset() — Car.reset() принимает координаты</span></div>
+                                <div class="code-line"><span class="line-num">9</span><span class="line-code"> self.laps
+                                        = 0</span><span class="line-comment">Счётчик засчитанных кругов этого
+                                        игрока</span></div>
+                                <div class="code-line"><span class="line-num">10</span><span class="line-code">
+                                        self._away = True</span><span class="line-comment">True = машина сейчас вдали от
+                                        финиша. Предотвращает многократный подсчёт при стоянии на линии</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">16</span><span
+                                        class="line-code"> near = is_finish(self.car.pos.x, self.car.pos.y)</span><span
+                                        class="line-comment">Вызываем коллбэк — PlayerState не знает как устроена
+                                        финишная линия</span></div>
+                                <div class="code-line"><span class="line-num">17</span><span class="line-code"> <span
+                                            class="kw">if</span> near <span class="kw">and</span> self._away <span
+                                            class="kw">and</span> self.car.vel.<span class="fn">length</span>() >
+                                        10:</span><span class="line-comment">Три условия: в зоне + до этого был далеко +
+                                        едет (не стоит на финише)</span></div>
+                                <div class="code-line"><span class="line-num">18</span><span class="line-code">
+                                        self.laps += 1</span><span class="line-comment">Засчитываем круг только при
+                                        выполнении всех трёх условий</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">19</span><span
+                                        class="line-code"> self._away = not near</span><span
+                                        class="line-comment">Обновляем флаг: если сейчас рядом — _away=False, отъедет —
+                                        станет True снова</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">28</span><span
+                                        class="line-code"> FINISH_Y = 600</span><span class="line-comment">Y-координата
+                                        горизонтальной финишной линии (правая точка эллипса трассы)</span></div>
+                                <div class="code-line"><span class="line-num">29</span><span class="line-code">
+                                        FINISH_X0, FINISH_X1 = 1250, 1550</span><span class="line-comment">Левый и
+                                        правый края финиша — ширина 300px, соответствует ширине трассы</span></div>
+                                <div class="code-line"><span class="line-num">33</span><span class="line-code">
+                                        self._is_wall = <span class="kw">lambda</span> x, y: <span
+                                            class="kw">False</span></span><span class="line-comment">Дефолт — стен нет.
+                                        Подменяется реальным коллбэком после setup()</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">36</span><span
+                                        class="line-code"> <span class="kw">def</span> <span
+                                            class="fn">set_wall_checker</span>(self, fn):</span><span
+                                        class="line-comment">Инверсия зависимости: рендерер передаёт поведение в логику,
+                                        а не логика тянет рендер</span></div>
+                                <div class="code-line"><span class="line-num">37</span><span class="line-code">
+                                        self._is_wall = fn</span><span class="line-comment">Сохраняем коллбэк. Game не
+                                        знает что внутри — пиксели, полигоны или mock для тестов</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">40</span><span
+                                        class="line-code"> <span class="kw">return</span> abs(y - self.FINISH_Y) < 30
+                                            <span class="kw">and</span> ...</span><span class="line-comment">±30px
+                                        допуск по Y — машина «достаточно близко» к линии даже если не прямо на
+                                        ней</span></div>
+                                <div class="code-line"><span class="line-num">44</span><span class="line-code"> <span
+                                            class="kw">for</span> ps, actions <span class="kw">in</span> ((self.p1, a1),
+                                        (self.p2, a2)):</span><span class="line-comment">Обновляем обоих игроков одним
+                                        циклом — меньше дублирования кода</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">47</span><span
+                                        class="line-code"> ps.<span
+                                            class="fn">check_lap</span>(self._is_finish)</span><span
+                                        class="line-comment">Передаём метод как коллбэк — self._is_finish является bound
+                                        method</span></div>
+                                <div class="code-line"><span class="line-num">50</span><span class="line-code"> <span
+                                            class="kw">if</span> self.<span class="fn">_is_wall</span>(car.pos.x,
+                                        car.pos.y):</span><span class="line-comment">Вызываем сохранённый коллбэк —
+                                        полиморфизм через функцию первого класса</span></div>
+                                <div class="code-line"><span class="line-num">51</span><span class="line-code"> car.pos
+                                        -= car.vel * 0.016</span><span class="line-comment">Откатываем позицию на ~1
+                                        кадр назад (0.016 ≈ 1/60 сек)</span></div>
+                                <div class="code-line"><span class="line-num">52</span><span class="line-code"> car.vel
+                                        = car.vel * -0.5</span><span class="line-comment">Отскок: инвертируем скорость и
+                                        уменьшаем вдвое — имитация удара о стену</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="a_engine" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">Engine.py — построчно</h2>
+                            <div class="code-block">
+                                <div class="code-line highlight-row"><span class="line-num">1</span><span
+                                        class="line-code"><span class="kw">from</span> Game <span
+                                            class="kw">import</span> Game</span><span class="line-comment">Единственный
+                                        конкретный тип — Game. IRenderer и IInputProvider — абстракции</span></div>
+                                <div class="code-line"><span class="line-num">2</span><span class="line-code"><span
+                                            class="kw">from</span> Interfaces <span class="kw">import</span>
+                                        IInputProvider, IRenderer</span><span class="line-comment">Импортируем только
+                                        интерфейсы — Engine не знает про pygame вообще</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">6</span><span
+                                        class="line-code"> <span class="kw">def</span> <span
+                                            class="fn">__init__</span>(self, game, renderer,
+                                        input_provider):</span><span class="line-comment">Dependency Injection:
+                                        зависимости передаются снаружи, а не создаются внутри</span></div>
+                                <div class="code-line"><span class="line-num">12</span><span class="line-code">
+                                        self.renderer.<span class="fn">setup</span>(self.game)</span><span
+                                        class="line-comment">Вызывается один раз до цикла — инициализация
+                                        ресурсов</span></div>
+                                <div class="code-line"><span class="line-num">13</span><span class="line-code"> dt =
+                                        0.0</span><span class="line-comment">Первый кадр: dt=0, физика не двигается.
+                                        Реальное dt придёт после первого tick()</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">15</span><span
+                                        class="line-code"> <span class="kw">while</span> <span
+                                            class="kw">True</span>:</span><span class="line-comment">Бесконечный цикл —
+                                        выход только по явной команде "quit"</span></div>
+                                <div class="code-line"><span class="line-num">16</span><span class="line-code"> <span
+                                            class="kw">match</span> self.input_provider.<span
+                                            class="fn">poll_events</span>():</span><span class="line-comment">match/case
+                                        — структурное сопоставление Python 3.10+. Читаемее цепочки if/elif</span></div>
+                                <div class="code-line"><span class="line-num">17</span><span class="line-code"> <span
+                                            class="kw">case</span> <span class="st">"quit"</span>: <span
+                                            class="kw">break</span></span><span class="line-comment">Единственный выход
+                                        из цикла — выход из функции run()</span></div>
+                                <div class="code-line"><span class="line-num">18</span><span class="line-code"> <span
+                                            class="kw">case</span> <span class="st">"reset"</span>: self.game.<span
+                                            class="fn">reset</span>()</span><span class="line-comment">Сброс игры без
+                                        перезапуска приложения</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">20</span><span
+                                        class="line-code"> a1, a2 = self.input_provider.<span
+                                            class="fn">get_actions</span>()</span><span
+                                        class="line-comment">Распаковываем кортеж из двух словарей действий</span></div>
+                                <div class="code-line"><span class="line-num">21</span><span class="line-code">
+                                        self.game.<span class="fn">update</span>(dt, a1, a2)</span><span
+                                        class="line-comment">Обновляем физику с прошедшим временем и командами
+                                        игроков</span></div>
+                                <div class="code-line"><span class="line-num">22</span><span class="line-code">
+                                        self.renderer.<span class="fn">render</span>(self.game)</span><span
+                                        class="line-comment">Рисуем текущее состояние после физики</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">23</span><span
+                                        class="line-code"> dt = self.renderer.<span class="fn">tick</span>()</span><span
+                                        class="line-comment">Ждём следующего кадра, получаем dt для следующей итерации
+                                        физики</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="a_gapi" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">Gapi.py — построчно</h2>
+                            <div class="code-block">
+                                <div class="code-line highlight-row"><span class="line-num">8</span><span
+                                        class="line-code"><span class="kw">class</span> <span
+                                            class="nm">PyGameInput</span>(IInputProvider):</span><span
+                                        class="line-comment">Реализует только ввод — не умеет рисовать. SRP: одна
+                                        причина для изменения</span></div>
+                                <div class="code-line"><span class="line-num">24</span><span class="line-code"> <span
+                                            class="kw">if</span> event.key == pygame.K_RETURN <span class="kw">or</span>
+                                        pygame.K_KP_ENTER:</span><span class="line-comment">Enter обычный и цифровой —
+                                        нитро для второго игрока</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">34</span><span
+                                        class="line-code"><span class="kw">class</span> <span
+                                            class="nm">PyGameRenderer</span>(IRenderer):</span><span
+                                        class="line-comment">Реализует только рендер — не обрабатывает ввод. SRP
+                                        соблюдён</span></div>
+                                <div class="code-line"><span class="line-num">35</span><span class="line-code">
+                                        CAR_COLORS = ((255,214,0), (0,200,80))</span><span class="line-comment">Цвета
+                                        машин живут здесь — это визуальная деталь, не игровая логика</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">48</span><span
+                                        class="line-code"> self._car_imgs = [self.<span class="fn">_make_car</span>(c)
+                                        <span class="kw">for</span> c <span class="kw">in</span>
+                                        self.CAR_COLORS]</span><span class="line-comment">List comprehension: создаём
+                                        поверхности один раз при инициализации, не каждый кадр</span></div>
+                                <div class="code-line"><span class="line-num">62</span><span class="line-code">
+                                        pygame.draw.<span class="fn">rect</span>(s, (255,255,255), Rect(28, 6, 10,
+                                        16))</span><span class="line-comment">Имитация лобового стекла — прямоугольник в
+                                        правой части машины</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">66</span><span
+                                        class="line-code"> <span class="kw">def</span> <span
+                                            class="fn">setup</span>(self, game):</span><span
+                                        class="line-comment">Единственное место где рендерер взаимодействует с Game —
+                                        передаёт коллбэк</span></div>
+                                <div class="code-line"><span class="line-num">68</span><span class="line-code"> ox, oy =
+                                        self._track_offset</span><span class="line-comment">Распаковываем смещение для
+                                        использования в замыкании ниже</span></div>
+                                <div class="code-line"><span class="line-num">70</span><span class="line-code"> <span
+                                            class="kw">def</span> <span class="fn">is_wall</span>(x, y):</span><span
+                                        class="line-comment">Замыкание захватывает surf и offset — Game получает функцию
+                                        без знания о pygame</span></div>
+                                <div class="code-line"><span class="line-num">71</span><span class="line-code"> lx, ly =
+                                        int(x - ox), int(y - oy)</span><span class="line-comment">Переводим мировые
+                                        координаты в локальные координаты текстуры трассы</span></div>
+                                <div class="code-line"><span class="line-num">72</span><span class="line-code"> <span
+                                            class="kw">if not</span> (0 <= lx < surf.get_width() ...): <span class="kw">
+                                            return True</span></span><span class="line-comment">За границами карты =
+                                        тоже стена — машина не улетает в пустоту</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">74</span><span
+                                        class="line-code"> <span class="kw">return</span> surf.<span
+                                            class="fn">get_at</span>((lx, ly))[3] == 0</span><span
+                                        class="line-comment">Альфа-канал пикселя = 0 значит прозрачный = трава = стена.
+                                        Асфальт непрозрачен</span></div>
+                                <div class="code-line"><span class="line-num">75</span><span class="line-code">
+                                        game.<span class="fn">set_wall_checker</span>(is_wall)</span><span
+                                        class="line-comment">Передаём замыкание в Game — инверсия зависимости через
+                                        коллбэк</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">80</span><span
+                                        class="line-code"> cx = (game.p1.car.pos.x + game.p2.car.pos.x) / 2</span><span
+                                        class="line-comment">Камера следит за центром между двумя машинами, а не за
+                                        одной</span></div>
+                                <div class="code-line"><span class="line-num">82</span><span class="line-code">
+                                        self._camera.x = cx - self.WIDTH / 2</span><span class="line-comment">Вычитаем
+                                        половину экрана — объект оказывается в центре</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">91</span><span
+                                        class="line-code"> <span class="kw">for</span> i <span class="kw">in</span>
+                                        range(10): ... c = (255,255,255) <span class="kw">if</span> i%2==0
+                                        ...</span><span class="line-comment">10 сегментов с чередующимися цветами =
+                                        шахматный флаг финиша</span></div>
+                                <div class="code-line"><span class="line-num">99</span><span class="line-code"> <span
+                                            class="kw">for</span> ps, img <span class="kw">in</span> zip((game.p1,
+                                        game.p2), self._car_imgs):</span><span class="line-comment">zip связывает игрока
+                                        с его изображением — легко масштабировать на 3+ игрока</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">100</span><span
+                                        class="line-code"> rot = pygame.transform.<span class="fn">rotate</span>(img,
+                                        -ps.car.angle)</span><span class="line-comment">Минус угол: pygame вращает
+                                        против часовой, а у нас угол по часовой</span></div>
+                                <div class="code-line"><span class="line-num">101</span><span class="line-code"> r =
+                                        rot.<span class="fn">get_rect</span>(center=(pos.x - cam.x, pos.y -
+                                        cam.y))</span><span class="line-comment">get_rect(center=...) автоматически
+                                        вычисляет topleft с учётом размера повёрнутого спрайта</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">116</span><span
+                                        class="line-code"> s = pygame.Surface((150, 60), pygame.SRCALPHA)</span><span
+                                        class="line-comment">SRCALPHA = поверхность с альфа-каналом — нужна для
+                                        полупрозрачного фона панели</span></div>
+                                <div class="code-line"><span class="line-num">117</span><span class="line-code">
+                                        pygame.draw.<span class="fn">rect</span>(s, (20,20,30,200), ...)</span><span
+                                        class="line-comment">Четвёртое число (200) = альфа: 0 полностью прозрачно, 255
+                                        непрозрачно</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">135</span><span
+                                        class="line-code"> self._dashes = [(pts[i], pts[(i+1)%len(pts)]) <span
+                                            class="kw">for</span> i <span class="kw">in</span> range(0, len(pts),
+                                        4)]</span><span class="line-comment">Каждые 4 точки: берём пару (i, i+1) =
+                                        штрих, пропускаем (i+2, i+3) = пробел</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">143</span><span
+                                        class="line-code"><span class="kw">class</span> <span
+                                            class="nm">Gapi</span>:</span><span class="line-comment">Фасад — не
+                                        реализует интерфейсов, просто создаёт два объекта и предоставляет доступ</span>
+                                </div>
+                                <div class="code-line"><span class="line-num">145</span><span class="line-code">
+                                        self.renderer = PyGameRenderer()</span><span class="line-comment">Публичный
+                                        атрибут — main.py берёт его и передаёт в Engine</span></div>
+                                <div class="code-line"><span class="line-num">146</span><span class="line-code">
+                                        self.input = PyGameInput()</span><span class="line-comment">Отдельно от
+                                        рендерера — Engine получает их независимо через интерфейсы</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="a_main" class="tab-content" style="display:none">
+                        <div class="file-card">
+                            <h2 class="file-title">main.py — построчно</h2>
+                            <div class="code-block">
+                                <div class="code-line highlight-row"><span class="line-num">1</span><span
+                                        class="line-code"><span class="kw">from</span> Engine <span
+                                            class="kw">import</span> Engine</span><span class="line-comment">Оркестратор
+                                        цикла</span></div>
+                                <div class="code-line"><span class="line-num">2</span><span class="line-code"><span
+                                            class="kw">from</span> Game <span class="kw">import</span> Game</span><span
+                                        class="line-comment">Доменная логика</span></div>
+                                <div class="code-line"><span class="line-num">3</span><span class="line-code"><span
+                                            class="kw">from</span> Gapi <span class="kw">import</span> Gapi</span><span
+                                        class="line-comment">Фасад над конкретной реализацией pygame</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">5</span><span
+                                        class="line-code"><span class="kw">if</span> __name__ == <span
+                                            class="st">"__main__"</span>:</span><span class="line-comment">Защита: этот
+                                        блок не выполнится при импорте модуля в тестах или других файлах</span></div>
+                                <div class="code-line"><span class="line-num">6</span><span class="line-code"> api =
+                                        Gapi()</span><span class="line-comment">Инициализирует pygame, создаёт окно,
+                                        готовит рендерер и провайдер ввода</span></div>
+                                <div class="code-line"><span class="line-num">7</span><span class="line-code"> game =
+                                        Game()</span><span class="line-comment">Создаёт двух игроков на стартовых
+                                        позициях, счётчики кругов = 0</span></div>
+                                <div class="code-line highlight-row"><span class="line-num">8</span><span
+                                        class="line-code"> Engine(game, api.renderer, api.input).<span
+                                            class="fn">run</span>()</span><span class="line-comment">Composition Root:
+                                        зависимости собраны здесь и инжектированы — больше нигде не создаются</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </main>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+     СТРАНИЦА 4 — ПОТОК ДАННЫХ
+═══════════════════════════════════════════════════════════ -->
+        <div id="dataflow" class="page">
+            <div class="file-card" style="margin-top:20px">
+                <h2 class="file-title">Поток данных за один кадр</h2>
+                <p class="file-desc">Каждая итерация игрового цикла (~16.7 мс при 60 FPS) проходит четыре стадии строго
+                    по порядку.</p>
+
+                <p style="color:#666680;font-size:13px;margin-bottom:6px">① События ОС</p>
+                <div class="flow-row">
+                    <div class="flow-box">ОС / pygame</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">QUIT / KEYDOWN</div>
+                    <div class="flow-box">PyGameInput.poll_events()</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">"quit" | "reset" | "continue"</div>
+                    <div class="flow-box">Engine</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">break / game.reset()</div>
+                    <div class="flow-box">Следующий шаг</div>
+                </div>
+
+                <p style="color:#666680;font-size:13px;margin:20px 0 6px">② Ввод игрока</p>
+                <div class="flow-row">
+                    <div class="flow-box">Клавиатура</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">get_pressed()</div>
+                    <div class="flow-box">PyGameInput.get_actions()</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">a1, a2 (dict×2)</div>
+                    <div class="flow-box">Engine</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">game.update(dt, a1, a2)</div>
+                </div>
+
+                <p style="color:#666680;font-size:13px;margin:20px 0 6px">③ Физика и логика</p>
+                <div class="flow-row">
+                    <div class="flow-box">a1, a2, dt</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-box">Game.update()</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-box">Car.update() × 2</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">pos, vel, angle</div>
+                </div>
+                <div class="flow-row" style="margin-top:6px">
+                    <div class="flow-box">Car.pos</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">is_wall(x,y)</div>
+                    <div class="flow-box">пиксель трассы</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">bool</div>
+                    <div class="flow-box">отскок / пропуск</div>
+                </div>
+                <div class="flow-row" style="margin-top:6px">
+                    <div class="flow-box">Car.pos</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">is_finish(x,y)</div>
+                    <div class="flow-box">PlayerState.check_lap()</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">laps += 1 ?</div>
+                </div>
+
+                <p style="color:#666680;font-size:13px;margin:20px 0 6px">④ Рендер</p>
+                <div class="flow-row">
+                    <div class="flow-box">Game (только чтение)</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-box">PyGameRenderer.render()</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">blit, draw</div>
+                    <div class="flow-box">экран</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-label">tick() → dt</div>
+                    <div class="flow-box">следующий кадр</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+     СТРАНИЦА 5 — ООП-ПРИНЦИПЫ
+═══════════════════════════════════════════════════════════ -->
+        <div id="principles" class="page">
+            <div class="file-card" style="margin-top:20px">
+                <h2 class="file-title">ООП-принципы в проекте</h2>
+                <div class="principles-grid">
+
+                    <div class="principle-card">
+                        <div class="principle-title">S — Single Responsibility</div>
+                        <div class="principle-body">Каждый класс имеет одну причину для изменения. <code>Car</code> —
+                            только физика. <code>PyGameRenderer</code> — только рендер. <code>PyGameInput</code> —
+                            только ввод. Раньше <code>Gapi</code> нарушал этот принцип, совмещая оба.</div>
+                        <div class="principle-example">Car: физика\nPyGameRenderer: рендер\nPyGameInput: ввод</div>
+                    </div>
+
+                    <div class="principle-card">
+                        <div class="principle-title">O — Open/Closed</div>
+                        <div class="principle-body">Классы открыты для расширения, закрыты для изменения. Чтобы добавить
+                            веб-рендерер, создаём новый класс реализующий <code>IRenderer</code> — <code>Engine</code>
+                            не трогаем.</div>
+                        <div class="principle-example">class WebRenderer(IRenderer):\n def render(self, game): ...</div>
+                    </div>
+
+                    <div class="principle-card">
+                        <div class="principle-title">L — Liskov Substitution</div>
+                        <div class="principle-body"><code>PyGameRenderer</code> и любой другой рендерер взаимозаменяемы
+                            везде где ожидается <code>IRenderer</code>. <code>Engine</code> работает одинаково с любой
+                            реализацией.</div>
+                        <div class="principle-example">Engine(game, PyGameRenderer(), ...)\nEngine(game, TestRenderer(),
+                            ...)</div>
+                    </div>
+
+                    <div class="principle-card">
+                        <div class="principle-title">I — Interface Segregation</div>
+                        <div class="principle-body">Два отдельных интерфейса: <code>IRenderer</code> и
+                            <code>IInputProvider</code>. Тестовый рендерер не обязан реализовывать ввод. Реализации
+                            могут быть полностью независимы.
+                        </div>
+                        <div class="principle-example">class MockRenderer(IRenderer):\n # не знает про ввод</div>
+                    </div>
+
+                    <div class="principle-card">
+                        <div class="principle-title">D — Dependency Inversion</div>
+                        <div class="principle-body"><code>Engine</code> зависит от абстракций (<code>IRenderer</code>),
+                            а не от конкретного <code>PyGameRenderer</code>. <code>Game</code> зависит от коллбэка
+                            <code>is_wall(x,y)</code>, а не от <code>pygame.Surface</code>.
+                        </div>
+                        <div class="principle-example">game.set_wall_checker(fn)\n# не game.track_surf = surf</div>
+                    </div>
+
+                    <div class="principle-card">
+                        <div class="principle-title">Composition over Inheritance</div>
+                        <div class="principle-body"><code>PlayerState</code> содержит <code>Car</code> через композицию,
+                            а не наследует от него. <code>Game</code> содержит двух <code>PlayerState</code>.
+                            <code>Gapi</code> содержит рендерер и ввод.
+                        </div>
+                        <div class="principle-example">class PlayerState:\n self.car = Car(x, y)</div>
+                    </div>
+
+                    <div class="principle-card">
+                        <div class="principle-title">Защита от копирования</div>
+                        <div class="principle-body">Питонический аналог <code>= delete</code> из C++. Переопределение
+                            <code>__copy__</code> и <code>__deepcopy__</code> с выбросом исключения блокирует
+                            <code>copy.copy()</code> и <code>copy.deepcopy()</code>.
+                        </div>
+                        <div class="principle-example">def __copy__(self):\n raise TypeError("no copy")</div>
+                    </div>
+
+                    <div class="principle-card">
+                        <div class="principle-title">Facade Pattern</div>
+                        <div class="principle-body"><code>Gapi</code> — фасад над двумя подсистемами pygame.
+                            <code>main.py</code> создаёт один объект, а не два. При смене платформы меняется только
+                            <code>Gapi</code>.
+                        </div>
+                        <div class="principle-example">api = Gapi()\nEngine(game, api.renderer, api.input)</div>
+                    </div>
+
+                    <div class="principle-card">
+                        <div class="principle-title">Dependency Injection</div>
+                        <div class="principle-body">Все зависимости передаются через конструктор. <code>Engine</code> не
+                            делает <code>import pygame</code> и не создаёт <code>Gapi()</code> внутри себя — это делает
+                            <code>main.py</code> (Composition Root).
+                        </div>
+                        <div class="principle-example">Engine(game, renderer, input)\n# не Engine() { self.gapi = Gapi()
+                            }</div>
+                    </div>
+
+                    <div class="principle-card">
+                        <div class="principle-title">Callback / Closure</div>
+                        <div class="principle-body">Замыкание <code>is_wall(x,y)</code> захватывает <code>surf</code> и
+                            <code>offset</code> из <code>setup()</code>. <code>Game</code> получает поведение без знания
+                            о его реализации — инверсия зависимости через функции первого класса.
+                        </div>
+                        <div class="principle-example">def is_wall(x, y): # замыкание\n return surf.get_at(...)...</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /container -->
+
+    <script>
+        function switchPage(id, btn) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function switchTab(id, btn) {
+            const page = btn.closest('.page, .docs-layout');
+            const root = btn.closest('.docs-layout') || document;
+            root.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+            root.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).style.display = 'block';
+            btn.classList.add('active');
+        }
+
+        function toggleMethod(header) {
+            const body = header.nextElementSibling;
+            const ch = header.querySelector('.chevron');
+            const collapsed = body.classList.toggle('collapsed');
+            ch.textContent = collapsed ? '▶' : '▼';
+            ch.style.transform = collapsed ? 'rotate(0deg)' : '';
+        }
+    </script>
+</body>
+
+</html>
