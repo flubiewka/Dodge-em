@@ -6,16 +6,18 @@ class MathVector2:
         self.x = x
         self.y = y
 
-    def length(self):
+    def length(self):  # Pythagorean length
         return math.hypot(self.x, self.y)
 
     def scale_to_length(self, target_length):
+        # resize keeping direction
         l = self.length()
         if l > 0:
             self.x = (self.x / l) * target_length
             self.y = (self.y / l) * target_length
 
     def lerp(self, other, t):
+        # linear interpolation (t=0..1)
         return MathVector2(
             self.x + (other.x - self.x) * t, self.y + (other.y - self.y) * t
         )
@@ -43,7 +45,7 @@ class Car:
     def __init__(self, x: float, y: float):
         self.pos = MathVector2(x, y)
         self.vel = MathVector2()
-        self.angle = -90.0
+        self.angle = -90.0  # 0 = right, -90 = up
 
     def __copy__(self):
         raise TypeError("Car does not support copying")
@@ -52,6 +54,7 @@ class Car:
         raise TypeError("Car does not support copying")
 
     def reset(self, x: float, y: float):
+        # respawn at point
         self.pos = MathVector2(x, y)
         self.vel = MathVector2()
         self.angle = -90.0
@@ -61,14 +64,14 @@ class Car:
         forward = MathVector2(math.cos(rad), math.sin(rad))
         speed = self.vel.length()
 
-        turn = 0
+        turn = 0  # steering input
         if actions["left"]:
             turn -= 1 if speed >= 10 else speed / 10
         if actions["right"]:
             turn += 1 if speed >= 10 else speed / 10
         self.angle += turn * self.TURN_SPEED * dt
 
-        thrust, max_speed = 0.0, self.MAX_SPEED
+        thrust, max_speed = 0.0, self.MAX_SPEED  # throttle input
         if actions["forward"]:
             thrust += 1.0
         if actions["brake"]:
@@ -81,7 +84,7 @@ class Car:
             self.vel += forward * (self.ACCELERATION * thrust * dt)
         if speed > max_speed:
             self.vel.scale_to_length(max_speed)
-        if speed > 0:
+        if speed > 0:  # apply drag
             self.vel = self.vel.lerp(MathVector2(), min(self.DRAG * dt, 1.0) * 0.5)
 
-        self.pos += self.vel * dt
+        self.pos += self.vel * dt  # move

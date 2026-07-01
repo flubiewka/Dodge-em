@@ -8,22 +8,22 @@ if TYPE_CHECKING:
 class IInputProvider(ABC):
     @abstractmethod
     def poll_events(self) -> str:
-        pass
+        pass  # returns "quit"/"reset"/"continue"
 
     @abstractmethod
     def get_actions(self) -> tuple[dict[str, bool], dict[str, bool]]:
-        pass
+        pass  # per-player inputs
 
 
 class IRenderer(ABC):
     @abstractmethod
     def setup(self, game: "Game") -> None:
-        pass
+        pass  # init resources
 
     @abstractmethod
     def render(self, game: "Game") -> None:
-        pass
+        pass  # draw frame
 
     @abstractmethod
     def tick(self) -> float:
-        pass
+        pass  # frame delta time

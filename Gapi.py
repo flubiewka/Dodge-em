@@ -6,8 +6,6 @@ from Interfaces import IInputProvider, IRenderer
 
 
 class PyGameInput(IInputProvider):
-    """Отвечает только за считывание ввода."""
-
     def __copy__(self):
         raise TypeError("PyGameInput does not support copying")
 
@@ -15,6 +13,7 @@ class PyGameInput(IInputProvider):
         raise TypeError("PyGameInput does not support copying")
 
     def poll_events(self) -> str:
+        # check quit/reset keys
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return "quit"
@@ -26,6 +25,7 @@ class PyGameInput(IInputProvider):
         return "continue"
 
     def get_actions(self):
+        # read keyboard state
         k = pygame.key.get_pressed()
         a1 = {
             "forward": k[pygame.K_w],
@@ -45,8 +45,6 @@ class PyGameInput(IInputProvider):
 
 
 class PyGameRenderer(IRenderer):
-    """Отвечает только за рендер."""
-
     WIDTH, HEIGHT = 960, 540
     FPS = 60
     CAR_COLORS = ((255, 214, 0), (0, 200, 80))
@@ -59,9 +57,9 @@ class PyGameRenderer(IRenderer):
 
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+        self._screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         pygame.display.set_caption("Dodge 'em")
-        self.clock = pygame.time.Clock()
+        self._clock = pygame.time.Clock()
         self._camera = pygame.Vector2()
         self._track_surf = None
         self._track_offset = (0, 0)
@@ -71,15 +69,16 @@ class PyGameRenderer(IRenderer):
         self._car_imgs = [self._make_car(c) for c in self.CAR_COLORS]
 
     def _make_car(self, color):
+        # draw car sprite
         s = pygame.Surface((48, 28), pygame.SRCALPHA)
-        pygame.draw.rect(s, color, s.get_rect(), border_radius=6)
-        pygame.draw.rect(s, (25, 25, 25), s.get_rect(), 2, border_radius=6)
-        pygame.draw.rect(s, (255, 255, 255), pygame.Rect(28, 6, 10, 16))
+        pygame.draw.rect(s, color, s.get_rect(), border_radius=6)  # car
+        pygame.draw.rect(s, (25, 25, 25), s.get_rect(), 2, border_radius=6)  # window
+        pygame.draw.rect(s, (255, 255, 255), pygame.Rect(28, 6, 10, 16))  # border
         return s
 
     def setup(self, game):
+        # build track + wall checker
         self._track_surf, self._track_offset = self._build_track()
-        # Передаём коллбэк проверки стен — pygame не утекает в Game
         ox, oy = self._track_offset
         surf = self._track_surf
 
@@ -95,48 +94,52 @@ class PyGameRenderer(IRenderer):
         game.set_wall_checker(is_wall)
 
     def render(self, game):
+        # center camera on cars
         cx = (game.p1.car.pos.x + game.p2.car.pos.x) / 2
         cy = (game.p1.car.pos.y + game.p2.car.pos.y) / 2
         self._camera.x = cx - self.WIDTH / 2
         self._camera.y = cy - self.HEIGHT / 2
 
-        self.screen.fill((18, 18, 24))
+        self._screen.fill((18, 18, 24))
         ox, oy = self._track_offset
-        self.screen.blit(self._track_surf, (ox - self._camera.x, oy - self._camera.y))
+        if self._track_surf:
+            self._screen.blit(
+                self._track_surf, (ox - self._camera.x, oy - self._camera.y)
+            )
 
-        # Пунктирная осевая
+        # dashed centerline
         for a, b in self._dashes:
             pygame.draw.line(
-                self.screen,
+                self._screen,
                 (255, 255, 255),
                 (a[0] - self._camera.x, a[1] - self._camera.y),
                 (b[0] - self._camera.x, b[1] - self._camera.y),
                 3,
             )
 
-        # Линия финиша
+        # finish line stripes
         fy, fx0, fx1 = game.FINISH_Y, game.FINISH_X0, game.FINISH_X1
         for i in range(10):
             x = fx0 + (fx1 - fx0) * i / 10
             xn = fx0 + (fx1 - fx0) * (i + 1) / 10
             c = (255, 255, 255) if i % 2 == 0 else (20, 20, 20)
             pygame.draw.line(
-                self.screen,
+                self._screen,
                 c,
                 (x - self._camera.x, fy - self._camera.y),
                 (xn - self._camera.x, fy - self._camera.y),
                 10,
             )
 
-        # Машины
+        # draw cars
         for ps, img in zip((game.p1, game.p2), self._car_imgs):
             rot = pygame.transform.rotate(img, -ps.car.angle)
             r = rot.get_rect(
                 center=(ps.car.pos.x - self._camera.x, ps.car.pos.y - self._camera.y)
             )
-            self.screen.blit(rot, r)
+            self._screen.blit(rot, r)
 
-        # HUD
+        # HUD panels
         for x, label, laps, color in (
             (14, "P1 WASD", game.p1.laps, (255, 214, 0)),
             (self.WIDTH - 164, "P2 Arrows", game.p2.laps, (0, 200, 80)),
@@ -148,14 +151,16 @@ class PyGameRenderer(IRenderer):
             s.blit(
                 self._font_big.render(f"Laps: {laps}", True, (230, 230, 230)), (8, 28)
             )
-            self.screen.blit(s, (x, 14))
+            self._screen.blit(s, (x, 14))
 
         pygame.display.flip()
 
     def tick(self):
-        return self.clock.tick(self.FPS) / 1000
+        # cap framerate, return dt
+        return self._clock.tick(self.FPS) / 1000
 
     def _build_track(self):
+        # generate oval track surface
         cx, cy, rx, ry, road_w = 800, 600, 600, 300, 300
         pad = road_w // 2 + 20
         pts = [
@@ -188,7 +193,7 @@ class PyGameRenderer(IRenderer):
 
 
 class Gapi:
-    """Фасад: создаёт и хранит рендерер и провайдер ввода."""
+    # holds renderer and input provider
 
     def __init__(self):
         self.renderer = PyGameRenderer()
