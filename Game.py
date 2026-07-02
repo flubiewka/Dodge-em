@@ -11,6 +11,7 @@ class PlayerState:
         self.laps = 0
         self._away = True  # was outside finish zone
 
+    #! zablokowany konstruktor kopiujący
     def __copy__(self):
         raise TypeError("PlayerState does not support copying")
 
@@ -25,7 +26,7 @@ class PlayerState:
         self._away = not near
 
     def reset(self):
-        # back to start position
+        # bind - "r"
         self.car.reset(*self._start)
         self.laps = 0
         self._away = True
@@ -40,8 +41,9 @@ class Game:
         self.p2 = PlayerState(1450, 570)
         self._is_wall: Callable[[float, float], bool] = lambda x, y: (
             False
-        )  # default: no walls
+        )  # function wich sets false for both x,y on start (car is not inside wall)
 
+    #! zablokowany konstruktor kopiujący
     def __copy__(self):
         raise TypeError("Game does not support copying")
 
@@ -54,6 +56,7 @@ class Game:
 
     def _is_finish(self, x: float, y: float) -> bool:
         # inside finish rectangle
+        # prostakąt z współrzędnymi finishu
         return abs(y - self.FINISH_Y) < 30 and self.FINISH_X0 <= x <= self.FINISH_X1
 
     def update(self, dt: float, a1: dict, a2: dict):
@@ -70,6 +73,5 @@ class Game:
             car.vel = car.vel * -0.5
 
     def reset(self):
-        # reset both players
         self.p1.reset()
         self.p2.reset()

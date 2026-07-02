@@ -4,8 +4,11 @@ import pygame
 
 from Interfaces import IInputProvider, IRenderer
 
+#! jedyny plik oparty na pygame
 
-class PyGameInput(IInputProvider):
+
+class PyGameInput(IInputProvider):  #! DZEDZICZENIE PO IInputProvider
+    #! zablokowany konstruktor kopiujący
     def __copy__(self):
         raise TypeError("PyGameInput does not support copying")
 
@@ -13,7 +16,6 @@ class PyGameInput(IInputProvider):
         raise TypeError("PyGameInput does not support copying")
 
     def poll_events(self) -> str:
-        # check quit/reset keys
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return "quit"
@@ -25,7 +27,6 @@ class PyGameInput(IInputProvider):
         return "continue"
 
     def get_actions(self):
-        # read keyboard state
         k = pygame.key.get_pressed()
         a1 = {
             "forward": k[pygame.K_w],
@@ -44,11 +45,12 @@ class PyGameInput(IInputProvider):
         return a1, a2
 
 
-class PyGameRenderer(IRenderer):
-    WIDTH, HEIGHT = 960, 540
+class PyGameRenderer(IRenderer):  #! DZEDZICZENIE PO IRenderer
+    WIDTH, HEIGHT = 960, 540  # window dimesons
     FPS = 60
     CAR_COLORS = ((255, 214, 0), (0, 200, 80))
 
+    #! zablokowany konstruktor kopiujący
     def __copy__(self):
         raise TypeError("PyGameRenderer does not support copying")
 
@@ -69,11 +71,12 @@ class PyGameRenderer(IRenderer):
         self._car_imgs = [self._make_car(c) for c in self.CAR_COLORS]
 
     def _make_car(self, color):
-        # draw car sprite
         s = pygame.Surface((48, 28), pygame.SRCALPHA)
         pygame.draw.rect(s, color, s.get_rect(), border_radius=6)  # car
-        pygame.draw.rect(s, (25, 25, 25), s.get_rect(), 2, border_radius=6)  # window
-        pygame.draw.rect(s, (255, 255, 255), pygame.Rect(28, 6, 10, 16))  # border
+        pygame.draw.rect(
+            s, (25, 25, 25), s.get_rect(), 2, border_radius=6
+        )  # white window
+        pygame.draw.rect(s, (255, 255, 255), pygame.Rect(28, 6, 10, 16))  # balck border
         return s
 
     def setup(self, game):
@@ -94,7 +97,6 @@ class PyGameRenderer(IRenderer):
         game.set_wall_checker(is_wall)
 
     def render(self, game):
-        # center camera on cars
         cx = (game.p1.car.pos.x + game.p2.car.pos.x) / 2
         cy = (game.p1.car.pos.y + game.p2.car.pos.y) / 2
         self._camera.x = cx - self.WIDTH / 2
@@ -107,7 +109,7 @@ class PyGameRenderer(IRenderer):
                 self._track_surf, (ox - self._camera.x, oy - self._camera.y)
             )
 
-        # dashed centerline
+        # dashed line
         for a, b in self._dashes:
             pygame.draw.line(
                 self._screen,
@@ -139,7 +141,7 @@ class PyGameRenderer(IRenderer):
             )
             self._screen.blit(rot, r)
 
-        # HUD panels
+        # HUD
         for x, label, laps, color in (
             (14, "P1 WASD", game.p1.laps, (255, 214, 0)),
             (self.WIDTH - 164, "P2 Arrows", game.p2.laps, (0, 200, 80)),
@@ -156,11 +158,9 @@ class PyGameRenderer(IRenderer):
         pygame.display.flip()
 
     def tick(self):
-        # cap framerate, return dt
         return self._clock.tick(self.FPS) / 1000
 
     def _build_track(self):
-        # generate oval track surface
         cx, cy, rx, ry, road_w = 800, 600, 600, 300, 300
         pad = road_w // 2 + 20
         pts = [
@@ -193,8 +193,6 @@ class PyGameRenderer(IRenderer):
 
 
 class Gapi:
-    # holds renderer and input provider
-
     def __init__(self):
         self.renderer = PyGameRenderer()
         self.input = PyGameInput()

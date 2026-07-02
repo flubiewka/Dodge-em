@@ -12,7 +12,7 @@ class Engine:
         self._renderer.setup(self._game)
         dt = 0.0
 
-        while True:  # main loop
+        while True:
             match self._input_provider.poll_events():
                 case "quit":
                     break
